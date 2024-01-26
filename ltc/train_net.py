@@ -50,7 +50,7 @@ def train_epoch(
     model.train()
     loss_func = get_loss_func(cfg)
     lr = optim.get_epoch_lr(optimizer)
-    train_bar = tqdm(enumerate(train_loader), total=len(train_loader))
+    train_bar = tqdm(enumerate(train_loader), total=len(train_loader), position=0, ncols=100)
     for cur_iter, (batch_dict) in train_bar:
         misc.move_to_device(batch_dict, device)
         logits = model(batch_dict['features'], batch_dict['masks'])
