@@ -6,12 +6,14 @@ import torch
 from torch.utils.data.sampler import RandomSampler
 from .breakfast import Breakfast
 from .assembly101 import Assembly101
+from .thumos import Thumos
 from .utils import sequence_collate
 
 
 _DATASETS = {
     "breakfast": Breakfast,
     "assembly101": Assembly101,
+    "thumos": Thumos
 }
 
 
