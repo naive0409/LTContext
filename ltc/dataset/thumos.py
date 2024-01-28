@@ -5,11 +5,7 @@ from ltc.dataset.video_dataset import VideoDataset
 import os
 from os.path import join
 
-from ltc.dataset.utils import load_segmentations
-from ltc.dataset.utils import conform_temporal_sizes
 import ltc.utils.logging as logging
-
-import torch
 
 import json
 
@@ -21,27 +17,11 @@ class Thumos(VideoDataset):
         super(Thumos, self).__init__(cfg, mode)
         logger.info("Constructing Thumos {} dataset with {} videos.".format(mode, self._dataset_size))
 
-    def __getitem__(self, index: int):
-        """
-
-        :param index:
-        :return: sample dict containing:
-         'features': torch.Tensor [batch_size, input_dim_size, sequence_length]
-         'targets': torch.Tensor [batch_size, sequence_length]
-        """
-        sample = {}
-        targets = self._segmentations[index]
-        sample['targets'] = torch.tensor(targets).long()[::self._video_sampling_rate]  # [T]
-
-        feature_path = self._path_to_features[index]
-        sample['features'] = torch.tensor(self._load_features(feature_path)).T  # [T, D]
-        seq_length = sample['features'].shape[-1]
-        sample['targets'] = conform_temporal_sizes(sample['targets'], seq_length)
-
-        sample['video_name'] = self._video_names[index]
-
-        return sample
-
+    def _load_features(self, feature_path: str):
+        features = np.load(feature_path)
+        features = features.astype(np.float32)
+        features = features[:, ::self._video_sampling_rate]  # [D, T]
+        return features.T
 
     def _construct_loader(self):
         """
