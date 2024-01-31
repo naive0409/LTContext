@@ -64,7 +64,7 @@ _C.TEST.IGNORED_CLASSES = []
 _C.TEST.BATCH_SIZE = 1
 
 # saving the prediction
-_C.TEST.SAVE_PREDICTIONS = False
+_C.TEST.SAVE_PREDICTIONS = True
 
 _C.TEST.SAVE_RESULT_PATH = "./experiments/results"
 
