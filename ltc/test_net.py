@@ -16,11 +16,43 @@ from ltc.dataset import loader
 from ltc.model import model_builder
 from ltc.utils.metrics import calculate_metrics
 
+import csv
+import eval
+
 
 import ltc.utils.logging as logging
 
 logger = logging.get_logger(__name__)
 
+
+def find_equal_value_segments(lst):
+    segments = []
+    start_frame = None
+    end_frame = None
+    current_label = None
+
+    for i, value in enumerate(lst):
+        if start_frame is None or value != current_label:
+            if (start_frame is not None) and (current_label != 20):
+                segments.append({'start_frame': start_frame, 'end_frame': end_frame, 'label': int(current_label)})
+            start_frame = i
+            current_label = value
+        end_frame = i
+
+    if (start_frame is not None) and (current_label != 20):
+        segments.append({'start_frame': start_frame, 'end_frame': end_frame, 'label': int(current_label)})
+
+    return segments
+
+
+def save_to_csv(segments, filename='output.csv'):
+    with open(filename, 'w', newline='') as csvfile:
+        fieldnames = ['start_frame', 'end_frame', 'label']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        writer.writeheader()
+        for segment in segments:
+            writer.writerow(segment)
 
 @torch.no_grad()
 def eval_model(
@@ -82,9 +114,22 @@ def eval_model(
 
         if cfg.TEST.SAVE_PREDICTIONS:
             base_path = join(save_path, video_name)
-            os.makedirs(base_path, exist_ok=True)
-            np.save(join(base_path, "pred.npy"), prediction[0].long().numpy())
-            np.save(join(base_path, "gt.npy"), target[0].long().numpy())
+            # os.makedirs(base_path, exist_ok=True)
+            # np.save(join(base_path, "pred.npy"), prediction[0].long().numpy())
+            # np.save(join(base_path, "gt.npy"), target[0].long().numpy())
+    #         统计标记段，画图
+            segs = find_equal_value_segments(prediction[0])
+            video_data = val_loader.dataset.thumos['database'][video_name]
+            total_frames = int(video_data['duration'] * video_data['fps'])
+            for s in segs:
+                s['start_frame'] = int(s['start_frame'] * total_frames / prediction.shape[1])
+                s['end_frame'] = int(s['end_frame'] * total_frames / prediction.shape[1])
+            save_to_csv(segs, filename=join(save_path, video_name + '.csv'))
+
+            eval.segment_bars_with_confidence(save_path + '/' + video_name + '.png' , #r"./results/thumos/0102/" + video_name + ".png",
+                                              [0],  # confidence.tolist(),
+                                              target[0].numpy(), prediction[0].numpy())
+                #save_path + '/' + video_name + '.png'
 
     test_res_df = pd.DataFrame(test_metrics)
     test_res_df.round(5).to_csv(join(save_path, "testing_metrics.csv"))
